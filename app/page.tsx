@@ -30,7 +30,10 @@ export default function Home() {
   const [isIOS] = useState(() => {
     if (typeof window === "undefined") return false;
     const ua = navigator.userAgent || "";
-    return /iPad|iPhone|iPod/.test(ua);
+    const isIOSUA = /iPad|iPhone|iPod/.test(ua);
+    const isIPadOSDesktop =
+      navigator.platform === "MacIntel" && navigator.maxTouchPoints && navigator.maxTouchPoints > 1;
+    return isIOSUA || isIPadOSDesktop;
   });
 
   const getShouldMirror = (deviceId?: string) => {
