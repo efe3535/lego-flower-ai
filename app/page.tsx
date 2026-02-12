@@ -157,30 +157,30 @@ export default function Home() {
 
           <h1 className="text-2xl font-bold text-black dark:text-white">MechaWolves</h1>
 
-          {cameras.length > 1 && (
-            <div className="bg-zinc-100 dark:bg-zinc-900 p-3 rounded-lg shadow-md border border-zinc-300 dark:border-zinc-700 w-full">
-              <label className="block text-sm font-semibold mb-3 text-black dark:text-white">📹 Kamera Seçin:</label>
-              <select
-                value={selectedCamera}
-                onChange={(e) => handleCameraChange(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black dark:bg-zinc-800 dark:border-white dark:text-white dark:focus:ring-white dark:focus:border-white transition-all duration-200"
-              >
-                {cameras.map((camera, index) => (
-                  <option key={camera.deviceId} value={camera.deviceId}>
-                    {camera.label || `📷 Kamera ${index + 1}`}
-                  </option>
-                ))}
-              </select>
 
-              <button
-                type="button"
-                onClick={handleSwitchCamera}
-                className="mt-2 w-full px-4 py-3 border-2 border-black rounded-lg bg-black text-white text-sm font-semibold active:scale-[0.99] dark:bg-white dark:text-black transition-transform"
-              >
-                📱 Kamerayı Değiştir
-              </button>
-            </div>
-          )}
+          <div className="bg-zinc-100 dark:bg-zinc-900 p-3 rounded-lg shadow-md border border-zinc-300 dark:border-zinc-700 w-full">
+            <label className="block text-sm font-semibold mb-3 text-black dark:text-white">📹 Kamera Seçin:</label>
+            <select
+              value={selectedCamera}
+              onChange={(e) => handleCameraChange(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black dark:bg-zinc-800 dark:border-white dark:text-white dark:focus:ring-white dark:focus:border-white transition-all duration-200"
+            >
+              {cameras.map((camera, index) => (
+                <option key={camera.deviceId} value={camera.deviceId}>
+                  {camera.label || `📷 Kamera ${index + 1}`}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              onClick={handleSwitchCamera}
+              className="mt-2 w-full px-4 py-3 border-2 border-black rounded-lg bg-black text-white text-sm font-semibold active:scale-[0.99] dark:bg-white dark:text-black transition-transform"
+            >
+              📱 Kamerayı Değiştir
+            </button>
+          </div>
+
 
           <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-xl shadow-lg flex-1 flex items-center justify-center border border-zinc-300 dark:border-zinc-700 w-full">
             <div
