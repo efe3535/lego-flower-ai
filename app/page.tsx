@@ -27,6 +27,11 @@ export default function Home() {
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<string>("");
   const [model, setModel] = useState<tmImage.CustomMobileNet | null>(null);
+  const [isIOS] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const ua = navigator.userAgent || "";
+    return /iPad|iPhone|iPod/.test(ua);
+  });
 
   const getShouldMirror = (deviceId?: string) => {
     if (!deviceId) return true;
@@ -41,7 +46,11 @@ export default function Home() {
     return true;
   };
 
-  const startWebcam = useCallback(async (loadedModel: tmImage.CustomMobileNet, deviceId?: string, mirror: boolean = true) => {
+  const startWebcam = useCallback(async (
+    loadedModel: tmImage.CustomMobileNet,
+    options?: { deviceId?: string; facingMode?: "user" | "environment" },
+    mirror: boolean = true
+  ) => {
     if (webcamInstanceRef.current) {
       webcamInstanceRef.current.stop();
       if (webcamRef.current) {
@@ -50,8 +59,14 @@ export default function Home() {
     }
 
     const newWebcam = new tmImage.Webcam(600, 600, mirror);
-    const constraints = deviceId ? { deviceId: { exact: deviceId } } : undefined;
-    await newWebcam.setup(constraints);
+    const videoConstraints =
+      options?.deviceId
+        ? { deviceId: { exact: options.deviceId } }
+        : options?.facingMode
+          ? { facingMode: options.facingMode }
+          : undefined;
+
+    await newWebcam.setup(videoConstraints);
     await newWebcam.play();
     webcamInstanceRef.current = newWebcam;
 
@@ -105,7 +120,7 @@ export default function Home() {
   const handleCameraChange = (deviceId: string) => {
     setSelectedCamera(deviceId);
     if (model) {
-      startWebcam(model, deviceId, getShouldMirror(deviceId));
+      startWebcam(model, { deviceId }, getShouldMirror(deviceId));
     }
   };
 
@@ -125,13 +140,22 @@ export default function Home() {
   }, [getAvailableCameras, startWebcam]);
 
   const handleSwitchCamera = () => {
+    if (!model) return;
+
+    // iOS / iPadOS Safari: facingMode ile ön / arka kamera arasında geçiş
+    if (isIOS) {
+      startWebcam(model, { facingMode: "environment" }, false);
+      return;
+    }
+
+    // Diğer tarayıcılar: deviceId ile geçiş
     if (cameras.length <= 1) return;
 
     setSelectedCamera((prev) => {
       if (!prev) {
         const firstId = cameras[0]?.deviceId;
-        if (firstId && model) {
-          startWebcam(model, firstId, getShouldMirror(firstId));
+        if (firstId) {
+          startWebcam(model, { deviceId: firstId }, getShouldMirror(firstId));
         }
         return firstId || prev;
       }
@@ -140,8 +164,8 @@ export default function Home() {
       const nextIndex = (currentIndex + 1) % cameras.length;
       const nextId = cameras[nextIndex]?.deviceId;
 
-      if (nextId && model) {
-        startWebcam(model, nextId, getShouldMirror(nextId));
+      if (nextId) {
+        startWebcam(model, { deviceId: nextId }, getShouldMirror(nextId));
       }
 
       return nextId || prev;
