@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as tmImage from "@teachablemachine/image";
 
 type Prediction = {
@@ -8,46 +8,49 @@ type Prediction = {
   probability: number;
 };
 
+const flowerDescriptions = {
+  cicek1: {
+    title: "1. Lego Çiçeği",
+    description: "1. çiçek açıklaması"
+  },
+  cicek2: {
+    title: "2. Lego Çiçeği",
+    description: "2. çiçek açıklaması"
+  }
+};
+
 export default function Home() {
   const webcamRef = useRef<HTMLDivElement | null>(null);
+  const webcamInstanceRef = useRef<tmImage.Webcam | null>(null);
   const [result, setResult] = useState("Model yükleniyor...");
   const [description, setDescription] = useState("");
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<string>("");
-  const [webcam, setWebcam] = useState<tmImage.Webcam | null>(null);
   const [model, setModel] = useState<tmImage.CustomMobileNet | null>(null);
 
-  const flowerDescriptions = {
-    cicek1: {
-      title: "1. Lego Çiçeği",
-      description: "manyak çiçek. altında kesin altın maltın var. fazla şey sorma çünkü bilmiyom. 2. çiçeği bekliyoz. yağmur yapınca atcakmış."
-    },
-    cicek2: {
-      title: "🌻 Lego Papatya",
-      description: "Sarı merkezli beyaz papatya tespit edildi! Bu sevimli çiçek masumiyet ve doğalelığin simgesi. Lego ile doğanın güzelligini yakalamak harika!"
-    }
-  };
-
-  const startWebcam = async (loadedModel: tmImage.CustomMobileNet, deviceId?: string) => {
-    if (webcam) {
-      webcam.stop();
+  const startWebcam = useCallback(async (loadedModel: tmImage.CustomMobileNet, deviceId?: string) => {
+    if (webcamInstanceRef.current) {
+      webcamInstanceRef.current.stop();
       if (webcamRef.current) {
         webcamRef.current.innerHTML = "";
       }
     }
 
-    const newWebcam = new tmImage.Webcam(600, 600, true, deviceId);
-    await newWebcam.setup();
+    const newWebcam = new tmImage.Webcam(600, 600, true);
+    const constraints = deviceId ? { deviceId: { exact: deviceId } } : undefined;
+    await newWebcam.setup(constraints);
     await newWebcam.play();
-    setWebcam(newWebcam);
+    webcamInstanceRef.current = newWebcam;
 
     if (webcamRef.current) {
       webcamRef.current.appendChild(newWebcam.canvas);
     }
 
     const loop = async () => {
-      newWebcam.update();
-      const predictions = (await loadedModel.predict(newWebcam.canvas)) as Prediction[];
+      if (!webcamInstanceRef.current) return;
+
+      webcamInstanceRef.current.update();
+      const predictions = (await loadedModel.predict(webcamInstanceRef.current.canvas)) as Prediction[];
 
       const cicek1 = predictions.find((p) => p.className === "cicek");
       const cicek2 = predictions.find((p) => p.className === "cicek2");
@@ -67,20 +70,20 @@ export default function Home() {
     };
 
     loop();
-  };
+  }, []);
 
-  const getAvailableCameras = async () => {
+  const getAvailableCameras = useCallback(async () => {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter(device => device.kind === 'videoinput');
       setCameras(videoDevices);
-      if (videoDevices.length > 0 && !selectedCamera) {
-        setSelectedCamera(videoDevices[0].deviceId);
+      if (videoDevices.length > 0) {
+        setSelectedCamera((prev) => prev || videoDevices[0].deviceId);
       }
     } catch (error) {
       console.error('Kameralar listelenirken hata:', error);
     }
-  };
+  }, []);
 
   const handleCameraChange = (deviceId: string) => {
     setSelectedCamera(deviceId);
@@ -98,25 +101,52 @@ export default function Home() {
       setModel(loadedModel);
 
       await getAvailableCameras();
-      startWebcam(loadedModel, selectedCamera || undefined);
+      startWebcam(loadedModel);
     };
 
     loadModel();
-  }, []);
+  }, [getAvailableCameras, startWebcam]);
+
+  const handleSwitchCamera = () => {
+    if (cameras.length <= 1) return;
+
+    setSelectedCamera((prev) => {
+      if (!prev) {
+        const firstId = cameras[0]?.deviceId;
+        if (firstId && model) {
+          startWebcam(model, firstId);
+        }
+        return firstId || prev;
+      }
+
+      const currentIndex = cameras.findIndex((camera) => camera.deviceId === prev);
+      const nextIndex = (currentIndex + 1) % cameras.length;
+      const nextId = cameras[nextIndex]?.deviceId;
+
+      if (nextId && model) {
+        startWebcam(model, nextId);
+      }
+
+      return nextId || prev;
+    });
+  };
 
   return (
     <div className="flex h-screen items-center justify-center bg-white font-sans dark:bg-black">
+
       <main className="flex h-full w-full max-w-3xl flex-col items-center justify-center py-8 px-8 bg-white dark:bg-black">
+
         <div className="text-center space-y-4 w-full h-full flex flex-col justify-center">
-          <h1 className="text-2xl font-bold text-black dark:text-white">MechaWolves BAŞLIK FALAN KOYUCAZ</h1>
+
+          <h1 className="text-2xl font-bold text-black dark:text-white">MechaWolves</h1>
 
           {cameras.length > 1 && (
-            <div className="bg-zinc-100 dark:bg-zinc-900 p-3 rounded-lg shadow-md border border-zinc-300 dark:border-zinc-700">
+            <div className="bg-zinc-100 dark:bg-zinc-900 p-3 rounded-lg shadow-md border border-zinc-300 dark:border-zinc-700 w-full">
               <label className="block text-sm font-semibold mb-3 text-black dark:text-white">📹 Kamera Seçin:</label>
               <select
                 value={selectedCamera}
                 onChange={(e) => handleCameraChange(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black dark:bg-zinc-800 dark:border-white dark:text-white dark:focus:ring-white dark:focus:border-white transition-all duration-200"
+                className="hidden sm:block w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black dark:bg-zinc-800 dark:border-white dark:text-white dark:focus:ring-white dark:focus:border-white transition-all duration-200"
               >
                 {cameras.map((camera, index) => (
                   <option key={camera.deviceId} value={camera.deviceId}>
@@ -124,6 +154,14 @@ export default function Home() {
                   </option>
                 ))}
               </select>
+
+              <button
+                type="button"
+                onClick={handleSwitchCamera}
+                className="mt-2 w-full px-4 py-3 border-2 border-black rounded-lg bg-black text-white text-sm font-semibold sm:hidden active:scale-[0.99] dark:bg-white dark:text-black transition-transform"
+              >
+                📱 Kamerayı Değiştir
+              </button>
             </div>
           )}
 
@@ -135,8 +173,11 @@ export default function Home() {
             <p className="text-3xl font-bold text-black dark:text-white mb-2">{result}</p>
             <p className="text-xl text-zinc-600 dark:text-zinc-400 leading-relaxed">{description}</p>
           </div>
+
         </div>
+
       </main>
+
     </div>
   );
 }
