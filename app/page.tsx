@@ -10,12 +10,12 @@ type Prediction = {
 
 const flowerDescriptions = {
   cicek1: {
-    title: "1. Lego Çiçeği",
-    description: "1. çiçek açıklaması"
+    title: "Veri 1",
+    description: "1. veri açıklaması"
   },
   cicek2: {
-    title: "2. Lego Çiçeği",
-    description: "2. çiçek açıklaması"
+    title: "Veri 2",
+    description: "2. veri açıklaması"
   }
 };
 
@@ -28,7 +28,20 @@ export default function Home() {
   const [selectedCamera, setSelectedCamera] = useState<string>("");
   const [model, setModel] = useState<tmImage.CustomMobileNet | null>(null);
 
-  const startWebcam = useCallback(async (loadedModel: tmImage.CustomMobileNet, deviceId?: string) => {
+  const getShouldMirror = (deviceId?: string) => {
+    if (!deviceId) return true;
+
+    const camera = cameras.find((c) => c.deviceId === deviceId);
+    const label = camera?.label?.toLowerCase() || "";
+
+    if (label.includes("back") || label.includes("rear") || label.includes("environment")) {
+      return false;
+    }
+
+    return true;
+  };
+
+  const startWebcam = useCallback(async (loadedModel: tmImage.CustomMobileNet, deviceId?: string, mirror: boolean = true) => {
     if (webcamInstanceRef.current) {
       webcamInstanceRef.current.stop();
       if (webcamRef.current) {
@@ -36,7 +49,7 @@ export default function Home() {
       }
     }
 
-    const newWebcam = new tmImage.Webcam(600, 600, true);
+    const newWebcam = new tmImage.Webcam(600, 600, mirror);
     const constraints = deviceId ? { deviceId: { exact: deviceId } } : undefined;
     await newWebcam.setup(constraints);
     await newWebcam.play();
@@ -44,6 +57,10 @@ export default function Home() {
 
     if (webcamRef.current) {
       webcamRef.current.appendChild(newWebcam.canvas);
+      if (newWebcam.canvas) {
+        newWebcam.canvas.style.width = "100%";
+        newWebcam.canvas.style.height = "auto";
+      }
     }
 
     const loop = async () => {
@@ -62,8 +79,8 @@ export default function Home() {
         setResult(flowerDescriptions.cicek2.title);
         setDescription(flowerDescriptions.cicek2.description);
       } else {
-        setResult("❌ Çiçek Bulunamadı");
-        setDescription("Lego çiçeğinizi kameraya gösterin. Sistem otomatik olarak tanıyacaktır.");
+        setResult("❌ Veri Bulunamadı");
+        setDescription("Veriyi kameraya gösterin. Sistem otomatik olarak tanıyacaktır.");
       }
 
       requestAnimationFrame(loop);
@@ -88,7 +105,7 @@ export default function Home() {
   const handleCameraChange = (deviceId: string) => {
     setSelectedCamera(deviceId);
     if (model) {
-      startWebcam(model, deviceId);
+      startWebcam(model, deviceId, getShouldMirror(deviceId));
     }
   };
 
@@ -114,7 +131,7 @@ export default function Home() {
       if (!prev) {
         const firstId = cameras[0]?.deviceId;
         if (firstId && model) {
-          startWebcam(model, firstId);
+          startWebcam(model, firstId, getShouldMirror(firstId));
         }
         return firstId || prev;
       }
@@ -124,7 +141,7 @@ export default function Home() {
       const nextId = cameras[nextIndex]?.deviceId;
 
       if (nextId && model) {
-        startWebcam(model, nextId);
+        startWebcam(model, nextId, getShouldMirror(nextId));
       }
 
       return nextId || prev;
@@ -165,8 +182,11 @@ export default function Home() {
             </div>
           )}
 
-          <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-xl shadow-lg flex-1 flex items-center justify-center border border-zinc-300 dark:border-zinc-700">
-            <div className="border-2 border-black dark:border-white rounded-lg p-2 flex justify-center overflow-hidden max-w-fit mx-auto" ref={webcamRef}></div>
+          <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-xl shadow-lg flex-1 flex items-center justify-center border border-zinc-300 dark:border-zinc-700 w-full">
+            <div
+              className="border-2 border-black dark:border-white rounded-lg p-2 flex justify-center overflow-hidden w-full max-w-md sm:max-w-lg mx-auto"
+              ref={webcamRef}
+            ></div>
           </div>
 
           <div className="bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg border border-zinc-300 dark:border-zinc-700">
