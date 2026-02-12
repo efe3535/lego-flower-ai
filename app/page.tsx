@@ -163,7 +163,7 @@ export default function Home() {
               <select
                 value={selectedCamera}
                 onChange={(e) => handleCameraChange(e.target.value)}
-                className="hidden lg:block w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black dark:bg-zinc-800 dark:border-white dark:text-white dark:focus:ring-white dark:focus:border-white transition-all duration-200"
+                className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black dark:bg-zinc-800 dark:border-white dark:text-white dark:focus:ring-white dark:focus:border-white transition-all duration-200"
               >
                 {cameras.map((camera, index) => (
                   <option key={camera.deviceId} value={camera.deviceId}>
@@ -175,7 +175,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={handleSwitchCamera}
-                className="mt-2 w-full px-4 py-3 border-2 border-black rounded-lg bg-black text-white text-sm font-semibold lg:hidden active:scale-[0.99] dark:bg-white dark:text-black transition-transform"
+                className="mt-2 w-full px-4 py-3 border-2 border-black rounded-lg bg-black text-white text-sm font-semibold active:scale-[0.99] dark:bg-white dark:text-black transition-transform"
               >
                 📱 Kamerayı Değiştir
               </button>
